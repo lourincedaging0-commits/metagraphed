@@ -1268,6 +1268,20 @@ test("ChainFirehoseHub.unsubscribeChainEvents: decrements connection.activeSubsc
   assert.doesNotThrow(() => hub.unsubscribeChainEvents(repeater)); // already removed, no-op
 });
 
+test("ChainFirehoseHub.unsubscribeChainEvents: a connection with no activeSubscriptions property falls back to 1, flooring to 0 rather than going negative", () => {
+  // Structurally shouldn't happen via the normal subscribeChainEvents path
+  // (which always sets connection.activeSubscriptions to a real number on
+  // admission) -- mirrors the same defensive shape as the clientIp test
+  // above, seeded directly to exercise the `?? 1` fallback as its own branch.
+  const hub = new ChainFirehoseHub(stubState(), {});
+  const repeater = createAsyncRepeater();
+  const connection = {};
+  const entry = { repeater, topics: null, connection };
+  hub.chainEventSubscribers.add(entry);
+  assert.doesNotThrow(() => hub.unsubscribeChainEvents(repeater));
+  assert.equal(connection.activeSubscriptions, 0);
+});
+
 test("ChainFirehoseHub.subscribeChainEvents: an undefined connection skips the per-socket check entirely", () => {
   const hub = new ChainFirehoseHub(stubState(), {});
   for (
